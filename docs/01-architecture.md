@@ -6,8 +6,9 @@ in-box layer cannot.
 
 ## The node (any host)
 
-`pico/pico.sh` is the whole node: it downloads pinned `xray` and
-`cloudflared` binaries (sha256-verified), renders a minimal xray
+`pico/pico.sh` is the whole node: it stages the pinned `xray` and
+`cloudflared` binaries vendored in this repo (`pico/vendored/`,
+sha256-verified — no runtime downloads), renders a minimal xray
 config — one VMess + WebSocket inbound on `127.0.0.1:<VMPT>`
 (default 8001), one `freedom` outbound — renders the `vmess://`
 subscription link, and supervises the two processes. On platforms
