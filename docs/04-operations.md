@@ -14,11 +14,14 @@
 
 ## Bring-up (in the box)
 
-1. Install `pico/` somewhere (e.g. `/workspace/tunnel-pico-bot`)
-   and run it once with your env (`UUID`, `AGN`, `AGK` empty for
-   this step) so it downloads the pinned binaries and renders
-   `~/.tunnel-pico/config.json`; or render the config by hand
-   (the template is in `pico.sh`).
+1. Install `pico/` somewhere (e.g. `/workspace/tunnel-pico-bot`).
+   The pinned binaries are vendored in `pico/vendored/` — if that
+   directory is empty, populate it first with
+   `sh tools/fetch-binaries.sh` (the project's only network step,
+   done before deployment). Run `pico.sh` once with your env
+   (`UUID`, `AGN`, `AGK` empty for this step) so it stages the
+   vendored binaries and renders `~/.tunnel-pico/config.json`; or
+   render the config by hand (the template is in `pico.sh`).
 2. Copy `simular/in-box/*` to `/workspace/pico-net/`.
 3. `/etc/hosts`: add `127.0.0.1 localhost` and `::1 localhost` if
    missing (this box ships without them).
