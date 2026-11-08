@@ -35,6 +35,23 @@ in-box watchdog was also prototyped during the experiments; it is
 **out of scope for this project** — the setsid result stands on its
 own, and the external supervisor covers recovery.)
 
+## Design rule — vendored binaries, no runtime downloads
+
+Every binary the stack needs is **stored in this repo**
+(`pico/vendored/`, both x86_64 and arm64) and pinned by sha256.
+`pico.sh` verifies and stages them locally; it contains no download
+code at all, and a missing or hash-mismatched artifact is a loud,
+immediate stop — never a silent fetch. The one deliberate network
+step is `tools/fetch-binaries.sh`, run by a human *before* deployment
+when preparing or updating the vendored set.
+
+Why: the first production deployment of this stack (InstaBox S,
+2026-11-08) was nearly blocked at first boot because the launcher's
+one-time download of these exact files met a persistent HTTP 504 on
+the egress path. Self-healing is a fine property for a running
+service; deployment inputs are not a service — they belong in version
+control, accounted for in advance.
+
 ## Layout
 
 | Path | What |
