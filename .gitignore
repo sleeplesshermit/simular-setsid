@@ -1,0 +1,9 @@
+# deployment secrets / values — never commit
+agk*.txt
+*.token
+sub.txt
+state.json
+.env
+node.txt
+*-node.txt
+__pycache__/
