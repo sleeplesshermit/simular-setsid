@@ -1,0 +1,1 @@
+{"description":"Slim tunnel-only stack: xray VMess-WS + Cloudflare tunnel, shell-supervised, zero dependencies.","engines":{"node":">=16"},"license":"MIT","main":"index.js","name":"tunnel-pico-bot","scripts":{"start":"node index.js"},"version":"1.0.0"}
