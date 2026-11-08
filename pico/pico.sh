@@ -2,7 +2,9 @@
 # tunnel-pico-bot — launcher + supervisor (POSIX sh, zero dependencies)
 #
 # Does exactly three things:
-#   1. Fetch pinned xray + cloudflared binaries into $PICO_HOME/bin (cached).
+#   1. Stage the vendored pinned binaries (vendored/ next to this script)
+#      into $PICO_HOME/bin — the repo ships them; there are NO runtime
+#      downloads anywhere in this launcher.
 #   2. Render the xray config (single VMess-WS inbound) and sub.txt.
 #   3. Supervise the two processes, restarting either if it exits.
 #
@@ -34,12 +36,6 @@ case "$(uname -m)" in
   *) die "unsupported arch: $(uname -m)" ;;
 esac
 
-fetch() { # url out
-  if command -v curl >/dev/null 2>&1; then curl -fsSL --retry 2 -o "$2" "$1";
-  elif command -v wget >/dev/null 2>&1; then wget -q -O "$2" "$1";
-  else return 1; fi
-}
-
 verify() { # file sha256 — best effort: skip when no tool or no hash pinned
   [ -n "$2" ] || return 0
   case "$2" in *__*) return 0 ;; esac
@@ -50,34 +46,33 @@ verify() { # file sha256 — best effort: skip when no tool or no hash pinned
 
 ensure_xray() {
   [ -x "$BIN/xray" ] && return 0
-  tmp="$PICO_HOME/xray.zip"
-  if [ -f "$tmp" ] && verify "$tmp" "$XZIP_SHA"; then
-    log "using cached xray zip"
-  else
-    log "downloading xray $XRAY_VER"
-    fetch "https://github.com/XTLS/Xray-core/releases/download/$XRAY_VER/$XZIP" "$tmp" \
-      || die "xray download failed"
-    verify "$tmp" "$XZIP_SHA" || die "xray zip sha256 mismatch"
-  fi
+  # Vendored only: the pinned release zip ships in this repo (vendored/).
+  # No runtime downloads — if the file is missing or its hash does not
+  # match the pin, the launcher stops loudly instead of fetching anything.
+  vend="$SELF_DIR/vendored/$XZIP"
+  [ -f "$vend" ] || die "vendored xray zip missing: vendored/$XZIP (populate the repo with tools/fetch-binaries.sh)"
+  verify "$vend" "$XZIP_SHA" || die "vendored xray zip sha256 mismatch"
   if command -v unzip >/dev/null 2>&1; then
-    unzip -p "$tmp" xray > "$BIN/xray" || die "xray extract failed (unzip)"
+    unzip -p "$vend" xray > "$BIN/xray" || die "xray extract failed (unzip)"
   elif command -v python3 >/dev/null 2>&1; then
     python3 -c 'import sys,zipfile; sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("xray"))' \
-      "$tmp" > "$BIN/xray" || die "xray extract failed (python3)"
+      "$vend" > "$BIN/xray" || die "xray extract failed (python3)"
   elif command -v node >/dev/null 2>&1; then
-    node "$SELF_DIR/unzip.js" "$tmp" xray "$BIN/xray" || die "xray extract failed (node)"
+    node "$SELF_DIR/unzip.js" "$vend" xray "$BIN/xray" || die "xray extract failed (node)"
   else die "need unzip, python3 or node to extract xray"; fi
-  chmod +x "$BIN/xray"; rm -f "$tmp"
+  chmod +x "$BIN/xray"
+  log "xray staged from vendored zip"
 }
 
 ensure_cloudflared() {
-  [ -n "${AGK:-}" ] || return 0
   [ -x "$BIN/cloudflared" ] && return 0
-  log "downloading cloudflared $CF_VER"
-  fetch "https://github.com/cloudflare/cloudflared/releases/download/$CF_VER/$CFBIN" \
-    "$BIN/cloudflared" || die "cloudflared download failed"
-  verify "$BIN/cloudflared" "$CF_SHA" || { rm -f "$BIN/cloudflared"; die "cloudflared sha256 mismatch"; }
+  # Vendored only, same rule as xray: ship it in the repo or stop loudly.
+  vend="$SELF_DIR/vendored/$CFBIN"
+  [ -f "$vend" ] || die "vendored cloudflared missing: vendored/$CFBIN (populate the repo with tools/fetch-binaries.sh)"
+  verify "$vend" "$CF_SHA" || { rm -f "$BIN/cloudflared"; die "vendored cloudflared sha256 mismatch"; }
+  cp "$vend" "$BIN/cloudflared" || die "cloudflared stage failed"
   chmod +x "$BIN/cloudflared"
+  log "cloudflared staged from vendored binary"
 }
 
 ensure_xray
